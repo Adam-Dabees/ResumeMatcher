@@ -109,7 +109,6 @@ resume-job-matcher-ai/
 ## 🧠 Built By
 
 Adam Dabees
-
 Ibrahim Al Omran
 
 ---
