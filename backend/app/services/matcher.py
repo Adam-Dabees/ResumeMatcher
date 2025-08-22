@@ -1,37 +1,73 @@
 import os
-from groq import Groq  
+import requests
+import re
 from dotenv import load_dotenv
-load_dotenv()
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+load_dotenv()
 
 def analyze_resume_and_job_groq(resume_text: str, job_text: str) -> dict:
     prompt = f"""
-Compare the following resume and job description. 
+Compare the following resume and job description.
 Give a match score out of 100.
-List missing or weakly represented keywords/skills in the resume.
+List missing or weakly represented keywords/skills.
+Also suggest 2–3 improvements to make the resume better fit the job.
 
 Resume:
 {resume_text}
 
-Job Description:
+Job Posting:
 {job_text}
 
-Return result as:
+Format:
 Match Score: XX
-Missing Keywords: [keyword1, keyword2, ...]
-Suggested Fixes: [suggestion1, suggestion2, ...]
+Missing Keywords: [keyword1, keyword2]
+Suggestions: [suggestion1, suggestion2]
 """
 
-    response = client.chat.completions.create(
-        messages=[{"role": "user", "content": prompt}],
-        model="llama3-8b-8192",  # Or whichever Groq model you're using
-        temperature=0.2,
+    groq_api_key = os.getenv("GROQ_API_KEY")
+
+    headers = {
+        "Authorization": f"Bearer {groq_api_key}",
+        "Content-Type": "application/json"
+    }
+
+    body = {
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "messages": [{"role": "user", "content": prompt}]
+    }
+
+    response = requests.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        headers=headers,
+        json=body
     )
 
-    content = response.choices[0].message.content
+    if not response.ok:
+        raise RuntimeError(f"Groq API call failed: {response.status_code} - {response.text}")
 
-    # You can optionally parse the output here
+    content = response.json()["choices"][0]["message"]["content"]
+
+    content = content.replace("**", "")
+
+    match_score_match = re.search(r"Match Score:\s*(\d+)", content)
+    if not match_score_match:
+        raise ValueError("Could not find match score.\n" + content)
+    match_score = int(match_score_match.group(1))
+
+    missing_keywords_match = re.search(r"Missing Keywords:\s*\n((?:\* .+\n?)+)", content)
+    suggestions_match = re.search(r"Suggestions:\s*\n((?:[\*\d]\. .+\n?)+)", content)
+
+    if not (missing_keywords_match and suggestions_match):
+        raise ValueError("Could not find keywords or suggestions.\n" + content)
+
+    missing_keywords_block = missing_keywords_match.group(1).strip()
+    missing_keywords = [line.strip("* ").strip() for line in missing_keywords_block.splitlines()]
+
+    suggestions_block = suggestions_match.group(1).strip()
+    suggestions = [re.sub(r"^[\*\d]+\.\s*", "", line).strip() for line in suggestions_block.splitlines()]
+
     return {
-        "raw_output": content
+        "score": match_score,
+        "summary": f"Missing: {', '.join(missing_keywords)}",
+        "recommendations": suggestions
     }

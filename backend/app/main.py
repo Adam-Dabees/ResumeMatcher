@@ -1,14 +1,17 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from services.matcher import analyze_resume_and_job_groq
-import requests
-from bs4 import BeautifulSoup
+from tempfile import NamedTemporaryFile
+import pdfplumber
+
+from app.services.job_scraper import scrape_job_description
+from app.services.matcher import analyze_resume_and_job_groq  # Assuming you have this function
 
 app = FastAPI()
 
+# Allow frontend dev to access from localhost:3000
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Change to ["http://localhost:3000"] if you want stricter CORS
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -19,39 +22,35 @@ async def analyze_resume_and_job(
     resume: UploadFile = File(...),
     job_url: str = Form(...)
 ):
-    resume_text = (await resume.read()).decode("utf-8")
+    # Validate file type
+    if resume.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
 
-    # Scrape job description HTML
+    # Save and parse PDF
+    with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp.write(await resume.read())
+        tmp_path = tmp.name
+
     try:
-        response = requests.get(job_url, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        # Attempt to find main job content — tweak this if needed
-        job_text_elements = soup.find_all(["p", "li"])
-        job_text = "\n".join([elem.get_text(strip=True) for elem in job_text_elements if elem.get_text(strip=True)])
-
-        if len(job_text) < 100:
-            raise ValueError("Job description content too short. Site may be JS-rendered or structured differently.")
-
+        with pdfplumber.open(tmp_path) as pdf:
+            resume_text = "\n".join([page.extract_text() or "" for page in pdf.pages])
     except Exception as e:
-        return {"error": f"Failed to scrape job posting: {str(e)}"}
+        raise HTTPException(status_code=500, detail="Error reading PDF")
 
-    # TODO: GPT logic will go here
+    # Scrape job posting from URL
+    try:
+        job_description = scrape_job_description(job_url)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error scraping job URL: {str(e)}")
+
+    # Match using your logic (Groq, embedding comparison, etc.)
+    try:
+        match_result = analyze_resume_and_job_groq(resume_text, job_description)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Matching error: {str(e)}")
+
     return {
-        "match_score": 82,
-        "suggestions": ["Include leadership experience", "Add SQL/Excel skills"],
-        "job_snippet": job_text[:500]  # Debug preview
+        "summary": match_result["summary"],
+        "score": match_result.get("score"),
+        "recommendations": match_result.get("recommendations", [])
     }
-
-@app.post("/analyze/")
-async def analyze_resume_and_job(
-    resume: UploadFile = File(...),
-    job_url: str = Form(...)
-):
-    resume_text = (await resume.read()).decode("utf-8")
-    job_text = scrape_job_description(job_url)
-
-    result = analyze_resume_and_job_groq(resume_text, job_text)
-
-    return result

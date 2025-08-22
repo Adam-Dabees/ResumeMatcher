@@ -16,7 +16,7 @@ Future features will include LinkedIn scraping and company insights from Glassdo
 |-----------|--------------------------|
 | Frontend  | React, Axios             |
 | Backend   | FastAPI, Uvicorn         |
-| AI Layer  | OpenAI GPT (via API)     |
+| AI Layer  | Groq + LLaMA 3 (via API)     |
 | Optional  | LangChain (structured prompts) |
 
 ---
@@ -87,7 +87,7 @@ resume-job-matcher-ai/
 ## ✨ Features
 
 - Upload and analyze resumes + job descriptions
-- GPT-based skills matching and suggestion engine
+- LLaMA 3-based skills matching and suggestion engine
 - CORS-enabled backend for easy frontend integration
 - Easy to extend with:
   - PDF-to-text parsing
@@ -99,7 +99,7 @@ resume-job-matcher-ai/
 ## 📌 TODOs
 
 - [ ] Upload & parse PDF or .docx resumes
-- [ ] Integrate OpenAI GPT for real-time matching
+- [ ] Integrate Groq + LLaMA 3 for real-time matching
 - [ ] Add LangChain for structured prompt pipelines
 - [ ] Style UI with Tailwind / Material UI
 - [ ] Add login + user dashboard (optional)
