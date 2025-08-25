@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
 from tempfile import NamedTemporaryFile
 import pdfplumber
@@ -20,7 +21,8 @@ app.add_middleware(
 @app.post("/analyze/")
 async def analyze_resume_and_job(
     resume: UploadFile = File(...),
-    job_url: str = Form(...)
+    job_url: Optional[str] = Form(None),
+    job_description: Optional[str] = Form(None),
 ):
     # Validate file type
     if resume.content_type != "application/pdf":
@@ -37,11 +39,18 @@ async def analyze_resume_and_job(
     except Exception as e:
         raise HTTPException(status_code=500, detail="Error reading PDF")
 
-    # Scrape job posting from URL
-    try:
-        job_description = scrape_job_description(job_url)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error scraping job URL: {str(e)}")
+    # If job_description provided by the client, use it. Otherwise try scraping job_url.
+    if not job_description:
+        if not job_url:
+            raise HTTPException(status_code=400, detail="Either job_url or job_description must be provided.")
+        try:
+            job_description = scrape_job_description(job_url)
+        except Exception as e:
+            # Provide a clear error so frontend can suggest fallback to paste job description
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error scraping job URL: {str(e)}"
+            )
 
     # Match using your logic (Groq, embedding comparison, etc.)
     try:

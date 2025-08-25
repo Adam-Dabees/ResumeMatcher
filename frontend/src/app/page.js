@@ -5,6 +5,7 @@ import { useState } from 'react';
 export default function Home() {
   const [file, setFile] = useState(null);
   const [jobUrl, setJobUrl] = useState('');
+  const [jobDescription, setJobDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState('');
@@ -23,8 +24,8 @@ export default function Home() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!file || !jobUrl) {
-      setError('Please provide both a resume file and job URL');
+    if (!file || (!jobUrl && !jobDescription)) {
+      setError('Please provide a resume and either a job URL or paste the job description');
       return;
     }
 
@@ -35,10 +36,25 @@ export default function Home() {
     try {
       const formData = new FormData();
       formData.append('resume', file);
-      formData.append('job_url', jobUrl);
+  if (jobUrl) formData.append('job_url', jobUrl);
+  if (jobDescription) formData.append('job_description', jobDescription);
 
       // Use environment variable or fallback to localhost for development
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      // Normalize API URL to avoid malformed values like ':8000'
+      const rawApi = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      let apiUrl = rawApi;
+      try {
+        // If someone set just ':8000', prepend current host/protocol
+        if (apiUrl.startsWith(':')) {
+          apiUrl = `${window.location.protocol}//${window.location.hostname}${apiUrl}`;
+        }
+        // If missing protocol, assume same protocol as frontend
+        if (!/^https?:\/\//i.test(apiUrl)) {
+          apiUrl = `${window.location.protocol}//${apiUrl}`;
+        }
+      } catch (_) {
+        apiUrl = 'http://localhost:8000';
+      }
       
       const response = await fetch(`${apiUrl}/analyze/`, {
         method: 'POST',
@@ -47,7 +63,16 @@ export default function Home() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Analysis failed');
+        let errorMessage = errorData.detail || 'Analysis failed';
+        
+        // Show helpful message for scraping errors
+        if (errorMessage.includes('403 Forbidden') || errorMessage.includes('Access denied')) {
+          errorMessage = 'This job site blocks automated requests. Please copy the job description from the page and paste it in the text area below instead of using the URL.';
+        } else if (errorMessage.includes('Extracted text too short')) {
+          errorMessage = 'Could not extract job description from this URL (may be JavaScript-rendered). Please copy the job description and paste it in the text area below.';
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -125,8 +150,27 @@ export default function Home() {
                 onChange={(e) => setJobUrl(e.target.value)}
                 placeholder="https://example.com/job-posting"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
               />
+              <p className="text-sm text-gray-500 mt-1">
+                Note: Some sites (like Indeed) block automated scraping. If scraping fails, use the text area below instead.
+              </p>
+            </div>
+
+            {/* OR paste job description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                OR paste job description directly
+              </label>
+              <textarea
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                placeholder="Copy and paste the full job description here if the URL doesn't work or if the site blocks scraping..."
+                rows={6}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                This is often more reliable than URL scraping, especially for Indeed, Google Jobs, etc.
+              </p>
             </div>
 
             {/* Error Message */}

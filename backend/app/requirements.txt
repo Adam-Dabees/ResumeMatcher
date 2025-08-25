@@ -3,6 +3,7 @@ fastapi==0.116.1                # Web framework
 openai==1.100.2                 # OpenAI/Groq API integration
 pydantic==2.11.7                # Data validation
 PyPDF2==3.0.1                   # PDF parsing
+pdfplumber==0.6.0               # PDF parsing (used in main.py)
 python-dotenv==1.0.1            # Environment variable loading
 python-multipart==0.0.20        # File uploads
 requests==2.32.5                # HTTP requests

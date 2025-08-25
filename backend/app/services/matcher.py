@@ -26,6 +26,37 @@ Suggestions: [suggestion1, suggestion2]
 
     groq_api_key = os.getenv("GROQ_API_KEY")
 
+    # Development fallback: if no GROQ API key is present, return a mocked response
+    # so local frontend development and testing can proceed without external API access.
+    if not groq_api_key:
+        # Simple, conservative heuristic to extract some keywords from the job text
+        # (first few unique words that look like skills).
+        words = re.findall(r"[A-Za-z0-9+#\.\-]{2,}", job_text)
+        common = []
+        for w in words:
+            lw = w.lower()
+            if lw in ("and", "or", "the", "with", "for", "to", "of", "in"):
+                continue
+            if lw.isdigit():
+                continue
+            if lw not in common:
+                common.append(lw)
+            if len(common) >= 5:
+                break
+
+        missing_keywords = [k for k in common[:3]]
+        suggestions = [
+            "Highlight relevant projects and experience that match the job posting.",
+            "Add concrete metrics (percent, numbers) to demonstrate impact.",
+            "Include missing keywords from the job description in the skills section."
+        ]
+
+        return {
+            "score": 70,
+            "summary": f"Missing: {', '.join(missing_keywords)}" if missing_keywords else "No obvious missing keywords detected",
+            "recommendations": suggestions
+        }
+
     headers = {
         "Authorization": f"Bearer {groq_api_key}",
         "Content-Type": "application/json"
