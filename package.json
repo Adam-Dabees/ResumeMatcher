@@ -1,0 +1,18 @@
+{
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && next dev",
+    "dev:backend": "cd backend && python -m uvicorn main:app --reload --port 8000",
+    "build": "cd frontend && next build",
+    "start": "cd frontend && next start",
+    "lint": "cd frontend && next lint"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "next": "^15.5.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  }
+}
