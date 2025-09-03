@@ -4,11 +4,13 @@ import { useState } from 'react';
 
 export default function Home() {
   const [file, setFile] = useState(null);
+  const [latexFile, setLatexFile] = useState(null);
   const [jobUrl, setJobUrl] = useState('');
   const [jobDescription, setJobDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('analysis'); // 'analysis' or 'latex'
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -21,12 +23,30 @@ export default function Home() {
     }
   };
 
+  const handleLatexFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile && selectedFile.name.endsWith('.tex')) {
+      setLatexFile(selectedFile);
+      setError('');
+    } else {
+      setError('Please select a valid .tex file');
+      setLatexFile(null);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!file || (!jobUrl && !jobDescription)) {
-      setError('Please provide a resume and either a job URL or paste the job description');
-      return;
+    if (activeTab === 'analysis') {
+      if (!file || (!jobUrl && !jobDescription)) {
+        setError('Please provide a resume and either a job URL or paste the job description');
+        return;
+      }
+    } else if (activeTab === 'latex') {
+      if (!latexFile || (!jobUrl && !jobDescription)) {
+        setError('Please provide a LaTeX resume and either a job URL or paste the job description');
+        return;
+      }
     }
 
     setLoading(true);
@@ -35,7 +55,13 @@ export default function Home() {
 
     try {
       const formData = new FormData();
-      formData.append('resume', file);
+      
+      if (activeTab === 'analysis') {
+        formData.append('resume', file);
+      } else if (activeTab === 'latex') {
+        formData.append('latex_file', latexFile);
+      }
+      
       if (jobUrl) formData.append('job_url', jobUrl);
       if (jobDescription) formData.append('job_description', jobDescription);
 
@@ -52,7 +78,8 @@ export default function Home() {
         apiUrl = 'http://localhost:8000';
       }
       
-      const response = await fetch(`${apiUrl}/analyze/`, {
+      let endpoint = activeTab === 'analysis' ? '/analyze/' : '/edit-latex-resume/';
+      const response = await fetch(`${apiUrl}${endpoint}`, {
         method: 'POST',
         body: formData,
       });
@@ -81,10 +108,23 @@ export default function Home() {
 
   const reset = () => {
     setFile(null);
+    setLatexFile(null);
     setJobUrl('');
     setJobDescription('');
     setResults(null);
     setError('');
+  };
+
+  const downloadEditedLatex = () => {
+    if (results && results.edited_latex) {
+      const blob = new Blob([results.edited_latex], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'edited_resume.tex';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
   // Calculate potential score after implementing recommendations
@@ -105,6 +145,32 @@ export default function Home() {
           </p>
         </div>
 
+        {/* Tab Interface */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 border border-slate-200">
+          <div className="flex space-x-1 bg-slate-100 p-1 rounded-xl">
+            <button
+              onClick={() => setActiveTab('analysis')}
+              className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
+                activeTab === 'analysis'
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-800'
+              }`}
+            >
+              📊 Resume Analysis
+            </button>
+            <button
+              onClick={() => setActiveTab('latex')}
+              className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
+                activeTab === 'latex'
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-800'
+              }`}
+            >
+              ✏️ LaTeX Editing
+            </button>
+          </div>
+        </div>
+
         {!results ? (
           // Input Form
           <div className="bg-white rounded-2xl shadow-xl p-10 mb-8 border border-slate-200">
@@ -117,39 +183,75 @@ export default function Home() {
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      Upload Resume
+                      {activeTab === 'analysis' ? 'Upload PDF Resume' : 'Upload LaTeX Resume'}
                     </span>
                   </label>
                   <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center transition-all hover:border-blue-400 hover:bg-blue-50/50">
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      onChange={handleFileChange}
-                      className="hidden"
-                      id="file-upload"
-                    />
-                    <label 
-                      htmlFor="file-upload" 
-                      className="cursor-pointer flex flex-col items-center"
-                    >
-                      {file ? (
-                        <div className="text-green-700">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <div className="text-lg font-semibold">{file.name}</div>
-                          <div className="text-sm mt-2 text-slate-600 bg-slate-100 py-1 px-3 rounded-full">Click to change file</div>
-                        </div>
-                      ) : (
-                        <div className="text-slate-600">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                          </svg>
-                          <div className="text-lg font-semibold">Upload PDF Resume</div>
-                          <div className="text-sm mt-2">Drag & drop or click to browse</div>
-                        </div>
-                      )}
-                    </label>
+                    {activeTab === 'analysis' ? (
+                      <>
+                        <input
+                          type="file"
+                          accept=".pdf"
+                          onChange={handleFileChange}
+                          className="hidden"
+                          id="file-upload"
+                        />
+                        <label 
+                          htmlFor="file-upload" 
+                          className="cursor-pointer flex flex-col items-center"
+                        >
+                          {file ? (
+                            <div className="text-green-700">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <div className="text-lg font-semibold">{file.name}</div>
+                              <div className="text-sm mt-2 text-slate-600 bg-slate-100 py-1 px-3 rounded-full">Click to change file</div>
+                            </div>
+                          ) : (
+                            <div className="text-slate-600">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
+                              <div className="text-lg font-semibold">Upload PDF Resume</div>
+                              <div className="text-sm mt-2">Drag & drop or click to browse</div>
+                            </div>
+                          )}
+                        </label>
+                      </>
+                    ) : (
+                      <>
+                        <input
+                          type="file"
+                          accept=".tex"
+                          onChange={handleLatexFileChange}
+                          className="hidden"
+                          id="latex-file-upload"
+                        />
+                        <label 
+                          htmlFor="latex-file-upload" 
+                          className="cursor-pointer flex flex-col items-center"
+                        >
+                          {latexFile ? (
+                            <div className="text-green-700">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <div className="text-lg font-semibold">{latexFile.name}</div>
+                              <div className="text-sm mt-2 text-slate-600 bg-slate-100 py-1 px-3 rounded-full">Click to change file</div>
+                            </div>
+                          ) : (
+                            <div className="text-slate-600">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
+                              <div className="text-lg font-semibold">Upload LaTeX Resume</div>
+                              <div className="text-sm mt-2">Drag & drop or click to browse .tex files</div>
+                            </div>
+                          )}
+                        </label>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -212,7 +314,7 @@ export default function Home() {
                 <button
                   type="submit"
                   onClick={handleSubmit}
-                  disabled={loading || !file || (!jobUrl && !jobDescription)}
+                  disabled={loading || (!file && !latexFile) || (!jobUrl && !jobDescription)}
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 rounded-xl hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
                   {loading ? (
@@ -221,14 +323,14 @@ export default function Home() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Analyzing Your Resume...
+                      {activeTab === 'analysis' ? 'Analyzing Your Resume...' : 'Editing Your LaTeX Resume...'}
                     </div>
                   ) : (
                     <div className="flex items-center justify-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
-                      Analyze Match Score
+                      {activeTab === 'analysis' ? 'Analyze Match Score' : 'Edit LaTeX Resume'}
                     </div>
                   )}
                 </button>
@@ -257,8 +359,9 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Score Cards */}
-            <div className="grid md:grid-cols-2 gap-8">
+            {/* Score Cards - Only show for analysis mode */}
+            {activeTab === 'analysis' && (
+              <div className="grid md:grid-cols-2 gap-8">
               {/* Current Score */}
               <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
                 <div className="text-center">
@@ -300,8 +403,10 @@ export default function Home() {
                 </div>
               </div>
             </div>
+            )}
 
-            {/* Improvement Overview */}
+            {/* Improvement Overview - Only show for analysis mode */}
+            {activeTab === 'analysis' && (
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl shadow-xl p-8 border border-blue-100">
               <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -326,9 +431,10 @@ export default function Home() {
                 </div>
               </div>
             </div>
+            )}
 
-            {/* Recommendations */}
-            {results.recommendations && results.recommendations.length > 0 && (
+            {/* Recommendations - Only show for analysis mode */}
+            {activeTab === 'analysis' && results.recommendations && results.recommendations.length > 0 && (
               <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
                 <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -356,6 +462,116 @@ export default function Home() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* LaTeX Editing Results */}
+            {activeTab === 'latex' && results.edited_latex && (
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
+                <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  LaTeX Resume Enhanced Successfully!
+                </h3>
+                
+                <div className="space-y-6">
+                  {/* Score Improvement */}
+                  {results.original_score !== undefined && results.new_score !== undefined && (
+                    <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-xl p-6">
+                      <h4 className="font-semibold text-blue-800 mb-3">Score Improvement</h4>
+                      <div className="grid md:grid-cols-3 gap-4 text-center">
+                        <div>
+                          <div className="text-2xl font-bold text-blue-600">{results.original_score}%</div>
+                          <div className="text-sm text-blue-700">Original Score</div>
+                        </div>
+                        <div className="flex items-center justify-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold text-green-600">{results.new_score}%</div>
+                          <div className="text-sm text-green-700">New Score</div>
+                        </div>
+                      </div>
+                      {results.score_improvement > 0 && (
+                        <div className="text-center mt-3">
+                          <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                            +{results.score_improvement}% improvement!
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Changes Made */}
+                  {results.changes_made && results.changes_made.length > 0 && (
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+                      <h4 className="font-semibold text-green-800 mb-3">What Was Enhanced:</h4>
+                      <ul className="space-y-2">
+                        {results.changes_made.map((change, index) => (
+                          <li key={index} className="flex items-center text-green-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            {change}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Skills Added */}
+                  {results.suggestions && results.suggestions.skills_additions && results.suggestions.skills_additions.length > 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                      <h4 className="font-semibold text-blue-800 mb-3">Skills Added to Existing Section:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {results.suggestions.skills_additions.slice(0, 6).map((skill, index) => (
+                          <span key={index} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-sm text-blue-600 mt-3">
+                        These skills were added to your existing skills section to better match the job requirements.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Keywords Incorporated */}
+                  {results.suggestions && results.suggestions.keywords_to_include && results.suggestions.keywords_to_include.length > 0 && (
+                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
+                      <h4 className="font-semibold text-purple-800 mb-3">Keywords Incorporated:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {results.suggestions.keywords_to_include.slice(0, 6).map((keyword, index) => (
+                          <span key={index} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                            {keyword}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-sm text-purple-600 mt-3">
+                        These job-specific keywords were strategically incorporated into your experience descriptions.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Download Button */}
+                  <div className="text-center">
+                    <button
+                      onClick={downloadEditedLatex}
+                      className="bg-gradient-to-r from-green-600 to-blue-600 text-white py-4 px-8 rounded-xl hover:from-green-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Download Enhanced LaTeX Resume
+                    </button>
+                    <p className="text-sm text-slate-500 mt-3">
+                      Your resume has been optimized for this job posting while maintaining its original structure
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
