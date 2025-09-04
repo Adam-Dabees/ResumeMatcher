@@ -1,11 +1,12 @@
 {
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:frontend": "cd frontend && next dev",
-    "dev:backend": "cd backend && python -m uvicorn main:app --reload --port 8000",
-    "build": "cd frontend && next build",
-    "start": "cd frontend && next start",
-    "lint": "cd frontend && next lint"
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && .venv\\Scripts\\python.exe -m uvicorn app.main:app --reload --port 8000",
+    "build": "cd frontend && npm run build",
+    "start": "cd frontend && npm run start",
+    "lint": "cd frontend && npm run lint",
+    "setup": "cd backend && python -m venv .venv && .venv\\Scripts\\pip.exe install -r app/requirements.txt && cd ../frontend && npm install"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

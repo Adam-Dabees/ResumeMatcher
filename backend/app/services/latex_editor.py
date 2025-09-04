@@ -154,6 +154,10 @@ The goal is to make the resume more relevant while keeping it the same length an
         # If AI provided complete LaTeX, validate it doesn't create new sections
         if "complete_latex" in suggestions and suggestions["complete_latex"]:
             ai_latex = suggestions["complete_latex"]
+            # Fix date formatting: add space between month and year if missing (e.g., 'May2018' -> 'May 2018')
+            ai_latex = self._fix_latex_dates(ai_latex)
+            # Fix custom command runaway argument errors
+            ai_latex = self._fix_latex_commands(ai_latex)
             # Check if AI added new sections (we only want to enhance existing ones)
             if self._has_new_sections(latex_content, ai_latex):
                 # If AI added new sections, fall back to conservative editing
@@ -161,7 +165,21 @@ The goal is to make the resume more relevant while keeping it the same length an
             return ai_latex
         
         # Apply conservative editing
-        return self._apply_conservative_edits(latex_content, suggestions)
+        edited_latex = self._apply_conservative_edits(latex_content, suggestions)
+        edited_latex = self._fix_latex_dates(edited_latex)
+        edited_latex = self._fix_latex_commands(edited_latex)
+        return edited_latex
+
+    def _fix_latex_dates(self, latex: str) -> str:
+        """Fix date formatting: add space between month and year if missing (e.g., 'May2018' -> 'May 2018')"""
+        # Match patterns like 'Jan2018', 'Feb2020', etc. and add a space
+        months = [
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        ]
+        for month in months:
+            # Replace e.g. 'May2018' with 'May 2018' (only if not already followed by a space)
+            latex = re.sub(rf"{month}(\d{{4}})", rf"{month} \1", latex)
+        return latex
     
     def _has_new_sections(self, original: str, edited: str) -> bool:
         """Check if the edited LaTeX has new sections compared to original"""
@@ -394,4 +412,4 @@ The goal is to make the resume more relevant while keeping it the same length an
                 "latex_modifications": ["Enhanced existing sections", "Added missing skills to existing skills section"]
             },
             "changes_made": ["Enhanced existing skills section", "Improved experience descriptions", "Incorporated job keywords"]
-        } 
+        }
