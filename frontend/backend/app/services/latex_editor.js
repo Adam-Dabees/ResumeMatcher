@@ -21,24 +21,33 @@ export class LaTeXResumeEditor {
   }
 
   _fallback_edit(latexContent, jobDescription, resumeText) {
-    // Simple keyword extraction and basic improvements
-    const words = jobDescription.match(/[A-Za-z0-9+#\.\-]{2,}/g) || [];
+    // Better keyword extraction focusing on technical skills
     const commonSkills = [];
     
-    for (const w of words) {
-      const lw = w.toLowerCase();
-      if (['and', 'or', 'the', 'with', 'for', 'to', 'of', 'in', 'experience', 'skills', 'required', 'preferred', 'development', 'design', 'using', 'framework', 'platform', 'full', 'job', 'description'].includes(lw)) {
-        continue;
+    // Define common technical skills to look for
+    const technicalSkills = [
+      'Python', 'JavaScript', 'Java', 'C++', 'C#', 'Go', 'Rust', 'Swift', 'Kotlin',
+      'React', 'Angular', 'Vue', 'Node.js', 'Express', 'Django', 'Flask', 'Spring',
+      'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Jenkins', 'GitLab', 'GitHub',
+      'MongoDB', 'PostgreSQL', 'MySQL', 'Redis', 'Elasticsearch', 'GraphQL', 'REST',
+      'TypeScript', 'HTML', 'CSS', 'SASS', 'Webpack', 'Babel', 'Jest', 'Cypress',
+      'Machine Learning', 'AI', 'TensorFlow', 'PyTorch', 'Pandas', 'NumPy', 'Scikit-learn',
+      'Agile', 'Scrum', 'DevOps', 'CI/CD', 'Microservices', 'API', 'RESTful'
+    ];
+    
+    // Look for technical skills in the job description
+    for (const skill of technicalSkills) {
+      if (jobDescription.toLowerCase().includes(skill.toLowerCase())) {
+        commonSkills.push(skill);
+        if (commonSkills.length >= 3) {
+          break;
+        }
       }
-      if (/^\d+$/.test(lw)) {
-        continue;
-      }
-      if (!commonSkills.includes(w)) {
-        commonSkills.push(w);
-      }
-      if (commonSkills.length >= 3) {
-        break;
-      }
+    }
+    
+    // If no technical skills found, use some common ones based on context
+    if (commonSkills.length === 0) {
+      commonSkills.push('Python', 'JavaScript', 'React');
     }
 
     let editedLatex = latexContent;
