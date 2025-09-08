@@ -21,6 +21,7 @@ export async function POST(request) {
 
     // Get job description
     let finalJobDescription = jobDescription;
+    
     if (!finalJobDescription && jobUrl) {
       // For now, we'll skip job scraping in the API route
       // You could implement this later or use a different approach

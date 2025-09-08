@@ -24,6 +24,7 @@ export class LaTeXResumeEditor {
     // Better keyword extraction focusing on technical skills
     const commonSkills = [];
     
+    
     // Define common technical skills to look for
     const technicalSkills = [
       'Python', 'JavaScript', 'Java', 'C++', 'C#', 'Go', 'Rust', 'Swift', 'Kotlin',
@@ -37,7 +38,7 @@ export class LaTeXResumeEditor {
     
     // Look for technical skills in the job description
     for (const skill of technicalSkills) {
-      if (jobDescription.toLowerCase().includes(skill.toLowerCase())) {
+      if (jobDescription && jobDescription.toLowerCase().includes(skill.toLowerCase())) {
         commonSkills.push(skill);
         if (commonSkills.length >= 3) {
           break;
