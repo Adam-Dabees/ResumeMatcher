@@ -109,12 +109,17 @@ The goal is to make the resume more relevant while keeping it the same length an
         suggestions = {}
         
         # Extract skills additions
-        skills_match = re.search(r"SKILLS_ADDITIONS:\s*(.+)", content, re.DOTALL)
+        skills_match = re.search(r"SKILLS_ADDITIONS:\s*(.+?)(?=EXPERIENCE_ENHANCEMENTS:|KEYWORDS_TO_INCLUDE:|LATEX_MODIFICATIONS:|COMPLETE_LATEX:|$)", content, re.DOTALL)
         if skills_match:
             skills_text = skills_match.group(1).strip()
-            # Clean up the skills list
-            skills_list = [s.strip().strip('- ').strip() for s in skills_text.split(',')]
-            suggestions["skills_additions"] = [s for s in skills_list if s and len(s) < 100]  # Filter out very long items
+            # Clean up the skills list - split by newlines and commas, filter out empty items
+            skills_list = []
+            for line in skills_text.split('\n'):
+                for item in line.split(','):
+                    item = item.strip().strip('- ').strip('*').strip()
+                    if item and len(item) < 50 and not item.startswith('**') and not item.startswith('\\'):  # Filter out markdown and LaTeX
+                        skills_list.append(item)
+            suggestions["skills_additions"] = skills_list[:5]  # Limit to 5 skills
         
         # Extract experience enhancements
         exp_match = re.search(r"EXPERIENCE_ENHANCEMENTS:\s*(.+)", content, re.DOTALL)
@@ -124,11 +129,17 @@ The goal is to make the resume more relevant while keeping it the same length an
             suggestions["experience_enhancements"] = [s for s in exp_list if s and len(s) < 200]
         
         # Extract keywords to include
-        keywords_match = re.search(r"KEYWORDS_TO_INCLUDE:\s*(.+)", content, re.DOTALL)
+        keywords_match = re.search(r"KEYWORDS_TO_INCLUDE:\s*(.+?)(?=LATEX_MODIFICATIONS:|COMPLETE_LATEX:|$)", content, re.DOTALL)
         if keywords_match:
             keywords_text = keywords_match.group(1).strip()
-            keywords_list = [s.strip().strip('- ').strip() for s in keywords_text.split(',')]
-            suggestions["keywords_to_include"] = [s for s in keywords_list if s and len(s) < 100]
+            # Clean up the keywords list
+            keywords_list = []
+            for line in keywords_text.split('\n'):
+                for item in line.split(','):
+                    item = item.strip().strip('- ').strip('*').strip()
+                    if item and len(item) < 50 and not item.startswith('**') and not item.startswith('\\'):  # Filter out markdown and LaTeX
+                        keywords_list.append(item)
+            suggestions["keywords_to_include"] = keywords_list[:5]  # Limit to 5 keywords
         
         # Extract LaTeX modifications
         latex_match = re.search(r"LATEX_MODIFICATIONS:\s*(.+)", content, re.DOTALL)
@@ -413,3 +424,16 @@ The goal is to make the resume more relevant while keeping it the same length an
             },
             "changes_made": ["Enhanced existing skills section", "Improved experience descriptions", "Incorporated job keywords"]
         }
+    
+    def _fix_latex_commands(self, latex: str) -> str:
+        """Fix common LaTeX command issues that could cause compilation errors"""
+        # Fix runaway argument errors by ensuring proper closing braces
+        # This is a basic fix - more sophisticated fixes could be added as needed
+        latex = re.sub(r'\\[a-zA-Z]+\{[^}]*$', '', latex)  # Remove incomplete commands at end
+        return latex
+    
+    def _apply_latex_modifications(self, latex: str, modifications: List[str]) -> str:
+        """Apply specific LaTeX modifications from AI suggestions"""
+        # For now, this is a placeholder that returns the original latex
+        # In a more sophisticated implementation, this would parse and apply specific modifications
+        return latex

@@ -11,7 +11,7 @@ export default function Home() {
   const [results, setResults] = useState(null);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('analysis'); // 'analysis' or 'latex'
-  const [mockMode, setMockMode] = useState(true); // Toggle for mock responses
+  const [mockMode, setMockMode] = useState(false); // Toggle for mock responses
 
   // Mock data for testing UI
   const mockAnalysisResults = {
