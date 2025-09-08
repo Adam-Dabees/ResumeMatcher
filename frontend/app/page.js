@@ -190,7 +190,7 @@ export default function Home() {
               </h1>
             </div>
             <div className="flex-1 flex justify-end">
-              {/* Mock Mode Toggle */}
+              {/* Mock Mode Toggle - Hidden but keeping code for future use
               <div className="flex items-center space-x-3 bg-[#303743] bg-opacity-50 backdrop-blur-sm rounded-lg px-4 py-2 border border-gray-600 border-opacity-30">
                 <span className={`text-sm font-medium transition-colors duration-200 ${mockMode ? 'text-gray-400' : 'text-blue-400'}`}>
                   Live
@@ -211,6 +211,7 @@ export default function Home() {
                   Mock
                 </span>
               </div>
+              */}
             </div>
           </div>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto transition-opacity duration-700 hover:text-white">
@@ -725,6 +726,32 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Footer */}
+      <footer className="mt-16 py-8 border-t border-gray-700">
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <p className="text-gray-400 text-sm">
+            © 2025{' '}
+            <a 
+              href="https://www.linkedin.com/in/adam-dabees-bab51a217/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 transition-colors duration-200"
+            >
+              Adam Dabees
+            </a>
+            {', '}
+            <a 
+              href="https://www.linkedin.com/in/ibrahim-al-omran/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 transition-colors duration-200"
+            >
+              Ibrahim Al Omran
+            </a>
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
