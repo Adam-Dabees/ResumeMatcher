@@ -27,7 +27,7 @@ export class LaTeXResumeEditor {
     
     for (const w of words) {
       const lw = w.toLowerCase();
-      if (['and', 'or', 'the', 'with', 'for', 'to', 'of', 'in', 'experience', 'skills', 'required', 'preferred', 'development', 'design', 'using', 'framework', 'platform'].includes(lw)) {
+      if (['and', 'or', 'the', 'with', 'for', 'to', 'of', 'in', 'experience', 'skills', 'required', 'preferred', 'development', 'design', 'using', 'framework', 'platform', 'full', 'job', 'description'].includes(lw)) {
         continue;
       }
       if (/^\d+$/.test(lw)) {
@@ -43,30 +43,50 @@ export class LaTeXResumeEditor {
 
     let editedLatex = latexContent;
 
-    // Add skills to existing skills section
-    if (latexContent.includes('\\section{Skills}') || latexContent.includes('\\subsection{Skills}')) {
-      const skillsPattern = /(\\section\{Skills\}.*?)(\\section|\\end\{document\}|$)/s;
-      const skillsMatch = editedLatex.match(skillsPattern);
+    // Look for Technical Skills section (case insensitive)
+    const skillsPatterns = [
+      /(\\section\{Technical Skills\}.*?)(\\section|\\end\{document\}|$)/is,
+      /(\\section\{Skills\}.*?)(\\section|\\end\{document\}|$)/is,
+      /(\\subsection\{Technical Skills\}.*?)(\\subsection|\\section|\\end\{document\}|$)/is,
+      /(\\subsection\{Skills\}.*?)(\\subsection|\\section|\\end\{document\}|$)/is
+    ];
+
+    for (const pattern of skillsPatterns) {
+      const skillsMatch = editedLatex.match(pattern);
       if (skillsMatch) {
         let skillsSection = skillsMatch[1];
-        if (skillsSection.includes('\\item')) {
-          const newSkillsText = `\\item ${commonSkills.slice(0, 2).join(', ')}`;
-          skillsSection = skillsSection.replace('\\end{itemize}', `${newSkillsText}\n\\end{itemize}`);
-          editedLatex = editedLatex.substring(0, skillsMatch.index) + skillsSection + editedLatex.substring(skillsMatch.index + skillsMatch[1].length);
+        // Add skills to the existing skills section
+        if (skillsSection.includes('\\textbf{Languages}')) {
+          // Find the Languages line and add skills there
+          const languagesMatch = skillsSection.match(/(\\textbf\{Languages\}\{[^}]*\})/);
+          if (languagesMatch) {
+            const newLanguages = languagesMatch[1].replace('}', `, ${commonSkills.slice(0, 2).join(', ')}`);
+            skillsSection = skillsSection.replace(languagesMatch[1], newLanguages);
+            editedLatex = editedLatex.substring(0, skillsMatch.index) + skillsSection + editedLatex.substring(skillsMatch.index + skillsMatch[1].length);
+            break;
+          }
         }
       }
     }
 
-    // Enhance existing experience descriptions
-    if (editedLatex.includes('\\section{Experience}')) {
-      const experiencePattern = /(\\section\{Experience\}.*?)(\\section|\\end\{document\}|$)/s;
-      const expMatch = editedLatex.match(experiencePattern);
+    // Look for Experience section and enhance it
+    const experiencePatterns = [
+      /(\\section\{Experience\}.*?)(\\section|\\end\{document\}|$)/is,
+      /(\\subsection\{Experience\}.*?)(\\subsection|\\section|\\end\{document\}|$)/is
+    ];
+
+    for (const pattern of experiencePatterns) {
+      const expMatch = editedLatex.match(pattern);
       if (expMatch) {
         let expSection = expMatch[1];
-        if (expSection.includes('\\end{itemize}')) {
-          const enhancement = `\\item Enhanced projects with ${commonSkills.slice(0, 1).join(', ')}`;
-          expSection = expSection.replace('\\end{itemize}', `${enhancement}\n\\end{itemize}`);
+        // Find the first resumeItem and enhance it
+        const firstItemMatch = expSection.match(/(\\resumeItem\{[^}]*\})/);
+        if (firstItemMatch) {
+          const originalItem = firstItemMatch[1];
+          const enhancedItem = originalItem.replace('}', `, leveraging ${commonSkills.slice(0, 1).join(', ')} technologies}`);
+          expSection = expSection.replace(originalItem, enhancedItem);
           editedLatex = editedLatex.substring(0, expMatch.index) + expSection + editedLatex.substring(expMatch.index + expMatch[1].length);
+          break;
         }
       }
     }
