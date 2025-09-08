@@ -110,21 +110,9 @@ export default function Home() {
       if (jobUrl) formData.append('job_url', jobUrl);
       if (jobDescription) formData.append('job_description', jobDescription);
 
-      const rawApi = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      let apiUrl = rawApi;
-      try {
-        if (apiUrl.startsWith(':')) {
-          apiUrl = `${window.location.protocol}//${window.location.hostname}${apiUrl}`;
-        }
-        if (!/^https?:\/\//i.test(apiUrl)) {
-          apiUrl = `${window.location.protocol}//${apiUrl}`;
-        }
-      } catch (_) {
-        apiUrl = 'http://localhost:8000';
-      }
-      
-      let endpoint = activeTab === 'analysis' ? '/analyze/' : '/edit-latex-resume/';
-      const response = await fetch(`${apiUrl}${endpoint}`, {
+      // Use Next.js API routes instead of external backend
+      let endpoint = activeTab === 'analysis' ? '/api/analyze' : '/api/edit-latex-resume';
+      const response = await fetch(endpoint, {
         method: 'POST',
         body: formData,
       });
