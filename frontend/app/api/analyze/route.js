@@ -15,24 +15,43 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Either job URL or job description is required' }, { status: 400 });
     }
 
-    // For now, return mock analysis results
-    // You can implement real PDF parsing and analysis later
-    const mockResults = {
-      summary: "Missing keywords: Docker, Kubernetes, AWS, TypeScript, GraphQL, Jest, Redux, MongoDB, REST APIs, Scrum. Consider adding these technologies and methodologies to better match the job requirements.",
-      score: 78,
-      recommendations: [
-        "Add more specific technical skills mentioned in the job description like React, Node.js, and PostgreSQL",
-        "Include quantifiable achievements in your experience section (e.g., 'Increased user engagement by 40%')",
-        "Incorporate industry-specific keywords such as 'agile development', 'CI/CD', and 'microservices'",
-        "Expand your education section to include relevant certifications or ongoing learning",
-        "Optimize your summary section to better align with the job requirements"
-      ]
-    };
+    // Call the actual backend API
+    const backendFormData = new FormData();
+    backendFormData.append('resume', resumeFile);
+    
+    if (jobUrl) {
+      backendFormData.append('job_url', jobUrl);
+    }
+    if (jobDescription) {
+      backendFormData.append('job_description', jobDescription);
+    }
 
-    return NextResponse.json(mockResults);
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const response = await fetch(`${backendUrl}/analyze/`, {
+      method: 'POST',
+      body: backendFormData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Backend API error');
+    }
+
+    const results = await response.json();
+    return NextResponse.json(results);
 
   } catch (error) {
     console.error('Error in analyze API:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    
+    // Return a more helpful error message
+    if (error.message.includes('fetch')) {
+      return NextResponse.json({ 
+        error: 'Could not connect to backend API. Make sure the backend server is running on port 8000.' 
+      }, { status: 500 });
+    }
+    
+    return NextResponse.json({ 
+      error: error.message || 'Internal server error' 
+    }, { status: 500 });
   }
 }
