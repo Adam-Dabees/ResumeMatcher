@@ -214,9 +214,31 @@ export default function Home() {
               */}
             </div>
           </div>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto transition-opacity duration-700 hover:text-white">
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto transition-opacity duration-700 hover:text-white mb-8">
             Advanced resume analysis powered by AI to maximize your job application success
           </p>
+          
+          {/* Key Benefits */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-8">
+            <div className="bg-[#303743] bg-opacity-60 border border-gray-600 border-opacity-40 rounded-xl p-6 backdrop-blur-sm hover:bg-opacity-80 transition-all duration-300 group">
+              <div className="text-center">
+                <div className="text-2xl font-semibold text-white mb-2 group-hover:text-blue-300 transition-colors">Smart Analysis</div>
+                <div className="text-sm text-gray-400">AI-powered resume optimization that identifies exactly what employers are looking for</div>
+              </div>
+            </div>
+            <div className="bg-[#303743] bg-opacity-60 border border-gray-600 border-opacity-40 rounded-xl p-6 backdrop-blur-sm hover:bg-opacity-80 transition-all duration-300 group">
+              <div className="text-center">
+                <div className="text-2xl font-semibold text-white mb-2 group-hover:text-purple-300 transition-colors">Keyword Matching</div>
+                <div className="text-sm text-gray-400">Automatically detect missing skills and keywords to boost your ATS compatibility</div>
+              </div>
+            </div>
+            <div className="bg-[#303743] bg-opacity-60 border border-gray-600 border-opacity-40 rounded-xl p-6 backdrop-blur-sm hover:bg-opacity-80 transition-all duration-300 group">
+              <div className="text-center">
+                <div className="text-2xl font-semibold text-white mb-2 group-hover:text-green-300 transition-colors">Instant Results</div>
+                <div className="text-sm text-gray-400">Get actionable recommendations in seconds, not hours of manual analysis</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Tab Interface */}
@@ -480,12 +502,12 @@ export default function Home() {
                 <div className="text-center">
                   <h3 className="text-xl font-semibold text-white mb-4">Potential Score</h3>
                   <div className="relative inline-block">
-                    <div className="text-6xl font-bold text-purple-400">{calculatePotentialScore(results.score)}%</div>
+                    <div className="text-6xl font-bold text-purple-400">{results.potential_score}%</div>
                   </div>
                   <div className="w-full bg-black bg-opacity-30 rounded-full h-4 mt-6">
                     <div
                       className="bg-gradient-to-r from-purple-400 to-pink-400 h-4 rounded-full transition-all duration-1000 animate-glow"
-                      style={{ width: `${calculatePotentialScore(results.score)}%` }}
+                      style={{ width: `${results.potential_score}%` }}
                     ></div>
                   </div>
                   <p className="text-sm text-gray-400 mt-4">
@@ -509,7 +531,7 @@ export default function Home() {
                 <div className="bg-blue-500 bg-opacity-30 border border-blue-400 border-opacity-50 rounded-xl p-6 backdrop-blur-sm hover:bg-opacity-40 transition-all duration-300">
                   <h4 className="font-semibold text-white mb-3">Expected Impact</h4>
                   <div className="text-3xl font-bold text-green-300">
-                    +{Math.round(calculatePotentialScore(results.score) - results.score)}%
+                    +{results.potential_score - results.score}%
                   </div>
                   <p className="text-gray-200 text-sm mt-2">Potential score increase</p>
                 </div>
@@ -525,30 +547,38 @@ export default function Home() {
             )}
 
             {/* Recommendations - Only show for analysis mode */}
-            {activeTab === 'analysis' && results.recommendations && results.recommendations.length > 0 && (
+            {activeTab === 'analysis' && results.improvement_steps && results.improvement_steps.length > 0 && (
               <div className="bg-[#303743] backdrop-blur-lg bg-opacity-90 rounded-2xl shadow-2xl p-8 border border-gray-600 border-opacity-30 transition-all duration-500 hover:shadow-3xl">
                 <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 663l3 3m0 0l3-3m-3 3V5m13 5a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h5" />
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Actionable Recommendations
+                  Step-by-Step Improvement Guide
                 </h3>
-                <div className="grid gap-6">
-                  {results.recommendations.map((rec, index) => (
-                    <div key={index} className="bg-black bg-opacity-20 border border-gray-600 border-opacity-30 rounded-xl p-6 hover:bg-opacity-30 transition-all duration-300 backdrop-blur-sm">
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0 w-10 h-10 bg-blue-500 bg-opacity-80 text-white rounded-full flex items-center justify-center text-lg font-bold mr-4 mt-1 backdrop-blur-sm">
-                          {index + 1}
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-white mb-2">Recommendation {index + 1}</h4>
-                          <p className="text-gray-300">{rec}</p>
-                          <div className="flex items-center mt-4 text-sm text-gray-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Estimated impact: +{Math.round((calculatePotentialScore(results.score) - results.score) / results.recommendations.length)}%
+                <div className="space-y-4">
+                  {results.improvement_steps.map((step, index) => (
+                    <div key={index} className="bg-black bg-opacity-20 rounded-xl p-6 border border-gray-600 border-opacity-30 hover:bg-opacity-30 transition-all duration-300">
+                      <div className="flex items-start space-x-4">
+                        <div className="flex-shrink-0">
+                          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                            {step.step}
                           </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-lg font-semibold text-white">{step.title}</h4>
+                            <div className="flex items-center space-x-2">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                step.priority === 'High' ? 'bg-red-500 bg-opacity-20 text-red-300' :
+                                step.priority === 'Medium' ? 'bg-yellow-500 bg-opacity-20 text-yellow-300' :
+                                'bg-green-500 bg-opacity-20 text-green-300'
+                              }`}>
+                                {step.priority}
+                              </span>
+                              <span className="text-xs text-gray-400">{step.estimatedTime}</span>
+                            </div>
+                          </div>
+                          <p className="text-gray-300 text-sm leading-relaxed">{step.description}</p>
                         </div>
                       </div>
                     </div>
@@ -668,7 +698,7 @@ export default function Home() {
             )}
 
             {/* Missing Keywords */}
-            {results.summary && (
+            {(results.summary || results.keywords_to_add) && (
               <div className="bg-[#303743] backdrop-blur-lg bg-opacity-90 rounded-2xl shadow-2xl p-8 border border-gray-600 border-opacity-30 transition-all duration-500 hover:shadow-3xl">
                 <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -676,8 +706,21 @@ export default function Home() {
                   </svg>
                   Keywords to Add
                 </h3>
-                <div className="bg-orange-600 bg-opacity-20 border border-orange-500 border-opacity-30 rounded-xl p-6 backdrop-blur-sm">
-                  <p className="text-white">{results.summary}</p>
+                <div className="bg-blue-600 bg-opacity-20 border border-blue-500 border-opacity-30 rounded-xl p-6 backdrop-blur-sm">
+                  {results.keywords_to_add && results.keywords_to_add.length > 0 ? (
+                    <div>
+                      <p className="text-white mb-4">Add these specific keywords to improve your match:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {results.keywords_to_add.map((keyword, index) => (
+                          <span key={index} className="bg-blue-500 bg-opacity-30 text-white px-3 py-1 rounded-full text-sm border border-blue-400 border-opacity-50">
+                            {keyword}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-white">{results.summary}</p>
+                  )}
                   <div className="flex items-center mt-4 text-sm text-gray-200">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -723,6 +766,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
+            
           </div>
         )}
       </div>
